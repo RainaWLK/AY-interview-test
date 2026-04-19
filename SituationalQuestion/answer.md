@@ -55,9 +55,17 @@ frontend (or CDN) --> ALB --> backend service --> DB
 
 
 # Question3
-> 無法使用SSH key登入，代表sshd可能已經掛掉。AWS提供的各種login方式如果是基於ssh，也就無法運作
-> 基於ssm agent的，或者serial console可能有機會，但我從未在sshd掛掉的時候成功用這些方式進去過
 
+## 問題分析
+無法使用SSH key登入
+- 代表sshd可能已經掛掉。AWS提供的各種login方式如果是基於ssh，也就無法運作  
+  基於ssm agent的，或者serial console可能有機會，但我從未在sshd掛掉的時候成功用這些方式進去過
+- 也有可能因為CPU loading過高，導致無法接入新的ssh連線
+    - 如果有CPU isolation，將CPU cores保留給服務使用，只留core 0給system，則當core 0被塞滿時便會發生ssh連不上，而且服務一切正常
+    - 若塞滿core 0的是已知的job，因為CPU已isolation，確定不會影響到服務本身，只要等待做完即可進入最後的事後檢討環節
+    - 此為特殊環境的常見情況。但本題的設定應該是預設，預設情況下若CPU被塞爆，則服務也不會正常運作，故底下故障排除不為此做分析
+
+## 故障排除
 ### 如果該服務可以scale out
 首先確認一下這個服務能不能開兩組以上，如果可以，就比照一般的VM upgrade流程，先開出另一台主機的另一個服務，確認都上線正常，則將有問題的主機移出ALB target group  
 然後重開機  
