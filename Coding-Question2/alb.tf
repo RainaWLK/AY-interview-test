@@ -12,5 +12,8 @@ resource "aws_lb" "test" {
   tags = {
     Environment = var.env
     "kubernetes.io/role/elb" = "1"
+    "ALB" = "external"
   }
 }
+
+# todo: cert

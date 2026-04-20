@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: mysample
+  namespace: asiayo
   labels:
     app: mysample
 spec:
@@ -14,11 +15,51 @@ spec:
       labels:
         app: mysample
     spec:
+      topologySpreadConstraints:
+      - maxSkew: 1
+        topologyKey: kubernetes.io/hostname
+        whenUnsatisfiable: DoNotSchedule
+        labelSelector:
+          matchLabels:
+            app: mysample
+        matchLabelKeys:
+        - pod-template-hash
+      terminationGracePeriodSeconds: 60 
       containers:
-      - name: mysample
-        image: mysample:latest
-        ports:
-        - containerPort: 80
----
-
-
+        - image: public.ecr.aws/l6m2t8p7/docker-2048:latest
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m" 
+              memory: "256Mi"
+          imagePullPolicy: Always
+          name: app-2048
+          lifecycle:
+            preStop:
+              exec:
+                command: ["sleep","5"]
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: liveness-port
+            failureThreshold: 3
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 80
+            failureThreshold: 1
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          ports:
+            - containerPort: 80
+          volumeMounts:
+          - name: persistent-storage
+            mountPath: /data
+      volumes:
+      - name: persistent-storage
+        persistentVolumeClaim:
+          claimName: ebs-claim
